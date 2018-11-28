@@ -87,5 +87,51 @@ namespace Stormlion.ImageCropper
 
             DependencyService.Get<IImageCropperWrapper>().ShowFromFile(this, imageFile);
         }
+        
+        public async void Show(Page page, StoreCameraMediaOptions TakePhotoOptions, PickMediaOptions PickPhotoOptions)
+        {
+            await CrossMedia.Current.Initialize();
+
+            MediaFile file;
+
+            string action = await page.DisplayActionSheet(SelectSourceTitle, "Cancel", null, TakePhotoTitle, PhotoLibraryTitle);
+            if (action == TakePhotoTitle)
+            {
+                if (!CrossMedia.Current.IsCameraAvailable || !CrossMedia.Current.IsTakePhotoSupported)
+                {
+                    await page.DisplayAlert("No Camera", ":( No camera available.", "OK");
+                    Faiure?.Invoke();
+                    return;
+                }
+
+                file = await CrossMedia.Current.TakePhotoAsync(TakePhotoOptions);
+            }
+            else if (action == PhotoLibraryTitle)
+            {
+                if (!CrossMedia.Current.IsPickPhotoSupported)
+                {
+                    await page.DisplayAlert("Error", "This device is not supported to pick photo.", "OK");
+                    Faiure?.Invoke();
+                    return;
+                }
+
+                file = await CrossMedia.Current.PickPhotoAsync(PickPhotoOptions);
+            }
+            else
+            {
+                Faiure?.Invoke();
+                return;
+            }
+
+            if (file == null)
+            {
+                Faiure?.Invoke();
+                return;
+            }
+
+            var imageFile = file.Path;
+
+            DependencyService.Get<IImageCropperWrapper>().ShowFromFile(this, imageFile);
+        }
     }
 }
